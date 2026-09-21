@@ -1,6 +1,7 @@
 export type ElectricityEntry = {
   id: string
   date: string
+  recordTime: string
   startUnit: number
   endUnit: number
   rate: number

@@ -12,10 +12,22 @@ function getLocalDate() {
   return `${year}-${month}-${day}`
 }
 
+function getLocalTime() {
+  const now = new Date()
+  return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+}
+
 function formatNumber(value: number, digits = 2) {
   return new Intl.NumberFormat('th-TH', {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
+  }).format(value)
+}
+
+function formatUnit(value: number) {
+  return new Intl.NumberFormat('th-TH', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
   }).format(value)
 }
 
@@ -40,10 +52,72 @@ function monthKey(date: string) {
   return date.slice(0, 7)
 }
 
+type LineChartProps = {
+  entries: ElectricityEntry[]
+  valueOf: (entry: ElectricityEntry) => number
+  valueFormatter: (value: number) => string
+  variant?: 'purple' | 'amber'
+}
+
+function LineChart({ entries, valueOf, valueFormatter, variant = 'purple' }: LineChartProps) {
+  const width = Math.max(640, entries.length * 76)
+  const height = 250
+  const left = 34
+  const right = 24
+  const top = 30
+  const bottom = 46
+  const chartWidth = width - left - right
+  const chartHeight = height - top - bottom
+  const values = entries.map(valueOf)
+  const maxValue = Math.max(1, ...values)
+
+  const points = entries.map((entry, index) => {
+    const x = entries.length === 1
+      ? left + chartWidth / 2
+      : left + (index / (entries.length - 1)) * chartWidth
+    const y = top + chartHeight - (valueOf(entry) / maxValue) * chartHeight
+    return { entry, x, y, value: valueOf(entry) }
+  })
+
+  const polyline = points.map((point) => `${point.x},${point.y}`).join(' ')
+
+  return (
+    <div className="line-chart-scroll">
+      <svg
+        className={`line-chart-svg ${variant === 'amber' ? 'amber-line' : ''}`}
+        viewBox={`0 0 ${width} ${height}`}
+        width={width}
+        height={height}
+        role="img"
+        aria-label="กราฟเส้นรายวัน"
+      >
+        {[0, 1, 2, 3].map((grid) => {
+          const y = top + (grid / 3) * chartHeight
+          return <line key={grid} className="chart-grid-line" x1={left} y1={y} x2={width - right} y2={y} />
+        })}
+        {points.length > 1 && <polyline className="line-series" points={polyline} />}
+        {points.map((point) => (
+          <g key={point.entry.id}>
+            <circle className="line-point-halo" cx={point.x} cy={point.y} r="8" />
+            <circle className="line-point" cx={point.x} cy={point.y} r="4.5" />
+            <text className="line-value" x={point.x} y={Math.max(16, point.y - 13)} textAnchor="middle">
+              {valueFormatter(point.value)}
+            </text>
+            <text className="line-date" x={point.x} y={height - 14} textAnchor="middle">
+              {formatChartDate(point.entry.date)}
+            </text>
+          </g>
+        ))}
+      </svg>
+    </div>
+  )
+}
+
 function App() {
   const today = getLocalDate()
   const [entries, setEntries] = useState<ElectricityEntry[]>(electricityRepository.getCachedEntries)
   const [date, setDate] = useState(today)
+  const [recordTime, setRecordTime] = useState(getLocalTime)
   const [startUnit, setStartUnit] = useState('')
   const [endUnit, setEndUnit] = useState('')
   const [rate, setRate] = useState('4.80')
@@ -67,7 +141,7 @@ function App() {
   }, [])
 
   const sortedEntries = useMemo(
-    () => [...entries].sort((a, b) => b.date.localeCompare(a.date)),
+    () => [...entries].sort((a, b) => `${b.date} ${b.recordTime || ''}`.localeCompare(`${a.date} ${a.recordTime || ''}`)),
     [entries],
   )
 
@@ -96,6 +170,7 @@ function App() {
 
   const resetForm = () => {
     setDate(today)
+    setRecordTime(getLocalTime())
     setStartUnit('')
     setEndUnit('')
     setRate('4.80')
@@ -109,7 +184,7 @@ function App() {
     const end = Number(endUnit)
     const unitRate = Number(rate)
 
-    if (!date || startUnit === '' || endUnit === '' || rate === '') {
+    if (!date || !recordTime || startUnit === '' || endUnit === '' || rate === '') {
       setError('กรุณากรอกข้อมูลให้ครบถ้วน')
       return
     }
@@ -129,6 +204,7 @@ function App() {
     const item: ElectricityEntry = {
       id: editingId ?? crypto.randomUUID(),
       date,
+      recordTime,
       startUnit: start,
       endUnit: end,
       rate: unitRate,
@@ -160,6 +236,7 @@ function App() {
   const handleEdit = (entry: ElectricityEntry) => {
     setEditingId(entry.id)
     setDate(entry.date)
+    setRecordTime(entry.recordTime || getLocalTime())
     setStartUnit(String(entry.startUnit))
     setEndUnit(String(entry.endUnit))
     setRate(String(entry.rate))
@@ -182,10 +259,10 @@ function App() {
 
   const exportCsv = () => {
     const rows = [
-      ['วันที่', 'หน่วยเริ่ม', 'หน่วยจบ', 'หน่วยที่ใช้', 'ราคาต่อหน่วย', 'ค่าไฟรวม'],
+      ['วันที่', 'เวลาบันทึก', 'หน่วยเริ่ม', 'หน่วยจบ', 'หน่วยที่ใช้', 'ราคาต่อหน่วย', 'ค่าไฟรวม'],
       ...filteredEntries.map((entry) => {
         const used = entry.endUnit - entry.startUnit
-        return [entry.date, entry.startUnit, entry.endUnit, used, entry.rate, used * entry.rate]
+        return [entry.date, entry.recordTime || '', entry.startUnit, entry.endUnit, used, entry.rate, used * entry.rate]
       }),
     ]
     const csv = rows.map((row) => row.join(',')).join('\n')
@@ -202,9 +279,6 @@ function App() {
     () => [...filteredEntries].sort((a, b) => a.date.localeCompare(b.date)).slice(-14),
     [filteredEntries],
   )
-
-  const maxUnits = Math.max(1, ...chartEntries.map((entry) => entry.endUnit - entry.startUnit))
-  const maxCost = Math.max(1, ...chartEntries.map((entry) => (entry.endUnit - entry.startUnit) * entry.rate))
 
   return (
     <div className="app">
@@ -245,7 +319,7 @@ function App() {
             <div className="summary-icon">⌁</div>
             <div className="summary-copy">
               <span>ใช้ไฟวันนี้</span>
-              <strong>{todayEntry ? formatNumber(todayEntry.endUnit - todayEntry.startUnit) : '0.00'}</strong>
+              <strong>{todayEntry ? formatUnit(todayEntry.endUnit - todayEntry.startUnit) : '0'}</strong>
               <small>หน่วย (kWh)</small>
             </div>
           </article>
@@ -253,7 +327,7 @@ function App() {
             <div className="summary-icon">▦</div>
             <div className="summary-copy">
               <span>ใช้ไฟเดือนนี้</span>
-              <strong>{formatNumber(monthUnits)}</strong>
+              <strong>{formatUnit(monthUnits)}</strong>
               <small>หน่วย (kWh)</small>
             </div>
           </article>
@@ -269,7 +343,7 @@ function App() {
             <div className="summary-icon">↗</div>
             <div className="summary-copy">
               <span>เฉลี่ยต่อวัน</span>
-              <strong>{formatNumber(averageDailyUnits)}</strong>
+              <strong>{formatUnit(averageDailyUnits)}</strong>
               <small>หน่วย (kWh)</small>
             </div>
           </article>
@@ -282,16 +356,20 @@ function App() {
                 <div className="heading-icon">✎</div>
                 <div>
                   <h2>{editingId ? 'แก้ไขข้อมูลมิเตอร์' : 'บันทึกเลขมิเตอร์'}</h2>
-                  <p>กรอกเลขมิเตอร์ ระบบจะคำนวณหน่วยและค่าไฟอัตโนมัติ</p>
+                  <p>ระบุวันที่และเวลาที่อ่านมิเตอร์ ระบบจะคำนวณหน่วยและค่าไฟอัตโนมัติ</p>
                 </div>
               </div>
               {editingId && <button className="button secondary" onClick={resetForm}>ยกเลิก</button>}
             </div>
 
             <form onSubmit={handleSubmit} className="entry-form">
-              <label className="field full-field">
+              <label className="field">
                 <span>วันที่บันทึก</span>
                 <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+              </label>
+              <label className="field">
+                <span>เวลาบันทึก</span>
+                <input type="time" value={recordTime} onChange={(e) => setRecordTime(e.target.value)} required />
               </label>
               <label className="field">
                 <span>หน่วยเริ่มต้น</span>
@@ -332,7 +410,7 @@ function App() {
             </div>
             <div className="calc-main">
               <span>หน่วยที่ใช้</span>
-              <strong>{formatNumber(usedUnit)}</strong>
+              <strong>{formatUnit(usedUnit)}</strong>
               <small>กิโลวัตต์-ชั่วโมง (kWh)</small>
             </div>
             <div className="calc-divider" />
@@ -350,21 +428,21 @@ function App() {
         <section id="analytics" className="panel analytics-panel">
           <div className="panel-heading">
             <div className="heading-group">
-              <div className="heading-icon chart-icon">▥</div>
+              <div className="heading-icon chart-icon">⌁</div>
               <div>
                 <h2>สถิติการใช้ไฟฟ้า</h2>
-                <p>เปรียบเทียบการใช้ไฟและค่าใช้จ่ายย้อนหลังสูงสุด 14 วัน</p>
+                <p>กราฟเส้นแสดงแนวโน้มรายวัน โดยแต่ละจุดแทนข้อมูล 1 วันย้อนหลังสูงสุด 14 วัน</p>
               </div>
             </div>
             <div className="analytics-total">
               <span>ยอดสะสมทั้งหมด</span>
-              <strong>{formatNumber(totalUnits)} หน่วย · {formatNumber(totalCost)} บาท</strong>
+              <strong>{formatUnit(totalUnits)} หน่วย · {formatNumber(totalCost)} บาท</strong>
             </div>
           </div>
 
           {chartEntries.length === 0 ? (
             <div className="empty-state">
-              <div className="empty-icon">▥</div>
+              <div className="empty-icon">⌁</div>
               <strong>ยังไม่มีข้อมูลสถิติ</strong>
               <span>เมื่อบันทึกเลขมิเตอร์แล้ว กราฟจะแสดงที่นี่</span>
             </div>
@@ -372,34 +450,21 @@ function App() {
             <div className="charts-grid">
               <div className="chart-card">
                 <div className="chart-title"><span className="legend-dot purple-dot" /> หน่วยที่ใช้ต่อวัน (kWh)</div>
-                <div className="bar-chart">
-                  {chartEntries.map((entry) => {
-                    const used = entry.endUnit - entry.startUnit
-                    return (
-                      <div className="bar-item" key={`unit-${entry.id}`}>
-                        <div className="bar-value">{formatNumber(used, 1)}</div>
-                        <div className="bar-track"><div className="bar-fill" style={{ height: `${Math.max(8, (used / maxUnits) * 100)}%` }} /></div>
-                        <div className="bar-label">{formatChartDate(entry.date)}</div>
-                      </div>
-                    )
-                  })}
-                </div>
+                <LineChart
+                  entries={chartEntries}
+                  valueOf={(entry) => entry.endUnit - entry.startUnit}
+                  valueFormatter={formatUnit}
+                />
               </div>
 
               <div className="chart-card cost-chart">
                 <div className="chart-title"><span className="legend-dot amber-dot" /> ค่าใช้จ่ายต่อวัน (บาท)</div>
-                <div className="bar-chart">
-                  {chartEntries.map((entry) => {
-                    const cost = (entry.endUnit - entry.startUnit) * entry.rate
-                    return (
-                      <div className="bar-item" key={`cost-${entry.id}`}>
-                        <div className="bar-value">{formatNumber(cost, 0)}</div>
-                        <div className="bar-track"><div className="bar-fill" style={{ height: `${Math.max(8, (cost / maxCost) * 100)}%` }} /></div>
-                        <div className="bar-label">{formatChartDate(entry.date)}</div>
-                      </div>
-                    )
-                  })}
-                </div>
+                <LineChart
+                  entries={chartEntries}
+                  valueOf={(entry) => (entry.endUnit - entry.startUnit) * entry.rate}
+                  valueFormatter={(value) => formatNumber(value, 0)}
+                  variant="amber"
+                />
               </div>
             </div>
           )}
@@ -429,6 +494,7 @@ function App() {
               <thead>
                 <tr>
                   <th>วันที่</th>
+                  <th>เวลา</th>
                   <th>หน่วยเริ่ม</th>
                   <th>หน่วยจบ</th>
                   <th>ใช้ไป</th>
@@ -439,16 +505,17 @@ function App() {
               </thead>
               <tbody>
                 {filteredEntries.length === 0 ? (
-                  <tr><td colSpan={7} className="empty-cell">ยังไม่มีข้อมูลการบันทึก</td></tr>
+                  <tr><td colSpan={8} className="empty-cell">ยังไม่มีข้อมูลการบันทึก</td></tr>
                 ) : filteredEntries.map((entry) => {
                   const used = entry.endUnit - entry.startUnit
                   const cost = used * entry.rate
                   return (
                     <tr key={entry.id}>
                       <td className="date-cell"><strong>{formatDate(entry.date)}</strong></td>
-                      <td>{formatNumber(entry.startUnit)}</td>
-                      <td>{formatNumber(entry.endUnit)}</td>
-                      <td><span className="unit-pill">{formatNumber(used)} kWh</span></td>
+                      <td><span className="time-pill">{entry.recordTime || '–'}</span></td>
+                      <td>{formatUnit(entry.startUnit)}</td>
+                      <td>{formatUnit(entry.endUnit)}</td>
+                      <td><span className="unit-pill">{formatUnit(used)} kWh</span></td>
                       <td>{formatNumber(entry.rate)} บาท</td>
                       <td className="money">{formatNumber(cost)} บาท</td>
                       <td>
@@ -469,14 +536,14 @@ function App() {
       <footer className="site-footer">
         <div className="footer-inner">
           <div><strong>⚡ ระบบติดตามการใช้ไฟฟ้า</strong><span>เครื่องมือสำหรับติดตามและวิเคราะห์การใช้พลังงาน</span></div>
-          <span>ข้อมูลถูกจัดเก็บภายในเครื่องของผู้ใช้</span>
+          <span>ข้อมูลบันทึกลง Google Sheet และมีสำเนาสำรองในเครื่อง</span>
         </div>
       </footer>
 
       <nav className="mobile-nav" aria-label="เมนูมือถือ">
         <a href="#dashboard"><span>⌂</span>ภาพรวม</a>
         <a href="#record"><span>✎</span>บันทึก</a>
-        <a href="#analytics"><span>▥</span>สถิติ</a>
+        <a href="#analytics"><span>⌁</span>สถิติ</a>
         <a href="#history"><span>☷</span>ประวัติ</a>
       </nav>
     </div>
