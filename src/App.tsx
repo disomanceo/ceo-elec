@@ -592,7 +592,7 @@ function App() {
       <header className="topbar">
         <div className="topbar-inner">
           <a className="brand" href="#top" aria-label="หน้าหลัก">
-            <div className="brand-mark">⚡</div>
+            <div className="brand-mark"><img src="/icon-192.png" alt="" aria-hidden="true" /></div>
             <div className="brand-copy"><strong>ระบบติดตามการใช้ไฟฟ้า</strong><span>Electricity Monitoring Portal</span></div>
           </a>
           <nav className="desktop-nav"><a className="active" href="#dashboard">ภาพรวม</a><a href="#record">บันทึกมิเตอร์</a><a href="#analytics">สถิติ</a><a href="#history">ประวัติ</a></nav>

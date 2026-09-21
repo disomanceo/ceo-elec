@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Ceo Elec</title>
+  <desc id="desc">ไอคอนระบบติดตามการใช้ไฟฟ้า</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6949d8"/>
+      <stop offset=".52" stop-color="#44319b"/>
+      <stop offset="1" stop-color="#21165f"/>
+    </linearGradient>
+    <linearGradient id="bolt" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff04a"/>
+      <stop offset="1" stop-color="#ff9f18"/>
+    </linearGradient>
+    <linearGradient id="aqua" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#43f0db"/>
+      <stop offset="1" stop-color="#19a8df"/>
+    </linearGradient>
+    <linearGradient id="bar" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#39e5d9"/>
+      <stop offset="1" stop-color="#334bb5"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#11083f" flood-opacity=".28"/>
+    </filter>
+  </defs>
+  <rect x="20" y="20" width="472" height="472" rx="104" fill="url(#bg)"/>
+  <path d="M111 267A165 165 0 0 1 402 258" fill="none" stroke="#f4f0ff" stroke-width="28" stroke-linecap="round" opacity=".94"/>
+  <path d="M111 267A165 165 0 0 1 181 130" fill="none" stroke="url(#aqua)" stroke-width="28" stroke-linecap="round"/>
+  <g stroke="#e9e5ff" stroke-width="12" stroke-linecap="round" opacity=".9">
+    <path d="M158 170l-15-13"/><path d="M209 132l-8-18"/><path d="M273 119v-20"/><path d="M336 136l10-18"/><path d="M382 177l17-11"/>
+  </g>
+  <path d="M286 143l-91 116h67l-25 94 91-119h-66z" fill="url(#bolt)" filter="url(#shadow)"/>
+  <g opacity=".9">
+    <rect x="138" y="352" width="46" height="63" rx="12" fill="url(#bar)" opacity=".55"/>
+    <rect x="207" y="329" width="46" height="86" rx="12" fill="url(#bar)" opacity=".7"/>
+    <rect x="276" y="305" width="46" height="110" rx="12" fill="url(#bar)" opacity=".84"/>
+    <rect x="345" y="274" width="46" height="141" rx="12" fill="url(#bar)"/>
+  </g>
+  <path d="M128 357c44-44 71-38 104-24s62 2 89-23 46-39 74-69" fill="none" stroke="url(#aqua)" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+  <g fill="#fff" stroke="#28d6d6" stroke-width="9">
+    <circle cx="197" cy="331" r="13"/><circle cx="274" cy="319" r="13"/><circle cx="347" cy="270" r="13"/>
+  </g>
+  <text x="256" y="457" text-anchor="middle" fill="#fff" font-family="Arial,Helvetica,sans-serif" font-size="46" font-weight="800" letter-spacing="-1">Ceo Elec</text>
+</svg>
