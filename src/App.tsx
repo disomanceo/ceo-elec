@@ -381,7 +381,6 @@ function App() {
   const usedUnit = Math.max(0, Number(endUnit || 0) - Number(startUnit || 0))
   const estimatedCost = usedUnit * Number(rate || 0)
   const currentDurationHours = getDurationHours({ startDate, startTime, endDate, endTime })
-  const currentDurationDays = currentDurationHours / 24
 
   const sortedEntries = useMemo(
     () => [...entries].sort((a, b) => `${b.endDate} ${b.endTime}`.localeCompare(`${a.endDate} ${a.endTime}`)),
@@ -660,7 +659,7 @@ function App() {
 
           <aside className="calc-panel interval-summary">
             <div className="calc-top"><span className="calc-label">ผลการคำนวณช่วงนี้</span><div className="calc-icon">⚡</div></div>
-            <div className="interval-metric"><span>ระยะเวลา</span><strong>{formatDuration(currentDurationHours)}</strong><small>{currentDurationHours > 0 ? `${formatUnit(currentDurationHours)} ชั่วโมง · ${formatUnit(currentDurationDays)} วัน` : 'ระบุวันและเวลาเริ่ม–จบ'}</small></div>
+            <div className="interval-metric"><span>ระยะเวลาที่วัด</span><strong>{formatDuration(currentDurationHours)}</strong><small className="duration-detail">{currentDurationHours > 0 ? (startDate === endDate ? `${startTime} → ${endTime} · ${formatUnit(currentDurationHours)} ชั่วโมง` : `${formatDate(startDate)} ${startTime} → ${formatDate(endDate)} ${endTime} · ${formatUnit(currentDurationHours)} ชั่วโมง`) : 'ระบุวันและเวลาเริ่ม–จบ'}</small></div>
             <div className="calc-divider" />
             <div className="interval-metric"><span>ใช้ไฟไป</span><strong>{formatUnit(usedUnit)} <small>kWh</small></strong></div>
             <div className="calc-divider" />

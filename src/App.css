@@ -379,6 +379,7 @@ input:disabled { opacity: .72; cursor: not-allowed; }
   .interval-metric > strong { margin-top: 2px; font-size: .92rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .interval-metric > strong small { font-size: .55rem; }
   .interval-metric > small { display: none; }
+  .interval-metric > small.duration-detail { display: block; margin-top: 3px; color: #d9d3ef; font-size: .55rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .calc-cost { min-width: 0; }
   .calc-cost strong { margin-top: 2px; font-size: .92rem; white-space: nowrap; }
   .calc-cost strong small { font-size: .55rem; }
