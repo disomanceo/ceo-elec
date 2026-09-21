@@ -90,6 +90,16 @@ input:hover { border-color: #c6c9d4; }
 input:focus { border-color: #6b5eaa; box-shadow: 0 0 0 3px rgba(75,63,143,.11); }
 .input-unit { position: relative; }
 .input-unit input { padding-right: 58px; }
+.thai-date-picker { position: relative; }
+.thai-date-button { width: 100%; min-height: 44px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 9px; padding: 9px 11px; border: 1px solid #d9dce5; border-radius: 10px; color: #303345; background: #fff; text-align: left; transition: .15s ease; }
+.thai-date-button:hover { border-color: #bfc3cf; background: #fcfcfe; }
+.thai-date-button:focus-visible { outline: none; border-color: #6b5eaa; box-shadow: 0 0 0 3px rgba(75,63,143,.11); }
+.thai-date-button strong { font-size: .86rem; font-weight: 800; }
+.thai-date-icon { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 8px; color: #55498c; background: #f0eef9; font-size: .8rem; }
+.thai-date-chevron { color: #8f93a0; font-size: 1rem; }
+.native-date-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.thai-date-picker.disabled .thai-date-button { opacity: 1; color: #3f6353; background: #edf7f1; border-color: #d3e8dc; cursor: not-allowed; }
+.thai-date-picker.disabled .thai-date-icon { color: #3f7b60; background: #dff0e6; }
 .input-unit em { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #8c909e; font-size: .76rem; font-style: normal; font-weight: 700; pointer-events: none; }
 .error-message { grid-column: 1 / -1; padding: 11px 13px; border: 1px solid #f4caca; border-radius: 10px; background: #fff4f4; color: #b34848; font-size: .84rem; }
 .form-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; padding-top: 2px; }

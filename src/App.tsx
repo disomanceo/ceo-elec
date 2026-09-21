@@ -49,6 +49,44 @@ function formatChartDate(date: string) {
   }).format(new Date(`${date}T00:00:00`))
 }
 
+type ThaiDatePickerProps = {
+  value: string
+  onChange: (value: string) => void
+  disabled?: boolean
+  label: string
+}
+
+function ThaiDatePicker({ value, onChange, disabled = false, label }: ThaiDatePickerProps) {
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const openPicker = () => {
+    if (disabled) return
+    const input = inputRef.current
+    if (!input) return
+    if (typeof input.showPicker === 'function') input.showPicker()
+    else input.click()
+  }
+
+  return (
+    <div className={`thai-date-picker ${disabled ? 'disabled' : ''}`}>
+      <button type="button" className="thai-date-button" onClick={openPicker} disabled={disabled} aria-label={label}>
+        <span className="thai-date-icon">▣</span>
+        <strong>{value ? formatDate(value) : 'เลือกวันที่'}</strong>
+        <span className="thai-date-chevron">⌄</span>
+      </button>
+      <input
+        ref={inputRef}
+        className="native-date-input"
+        type="date"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        disabled={disabled}
+        tabIndex={-1}
+      />
+    </div>
+  )
+}
+
 function monthKey(date: string) {
   return date.slice(0, 7)
 }
@@ -455,7 +493,7 @@ function App() {
               <div className={`reading-group start-reading ${continuationReady ? 'auto-start' : ''}`}>
                 <div className="reading-group-title"><span className="reading-badge">A</span><div><strong>จุดเริ่มต้น {continuationHasLatest ? '· ต่อจากครั้งล่าสุด' : ''}</strong><small>{continuationHasLatest ? 'ระบบนำค่าจบล่าสุดมาใช้ให้อัตโนมัติ' : 'วันที่ เวลา และเลขมิเตอร์เริ่ม'}</small></div></div>
                 <div className="reading-fields">
-                  <label className="field"><span>วันที่เริ่ม</span><input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} disabled={continuationHasLatest} required /></label>
+                  <label className="field"><span>วันที่เริ่ม</span><ThaiDatePicker value={startDate} onChange={setStartDate} disabled={continuationHasLatest} label="เลือกวันที่เริ่ม" /></label>
                   <label className="field"><span>เวลาเริ่ม</span><input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} disabled={continuationReady} required /></label>
                   <label className="field meter-field"><span>หน่วยเริ่มต้น</span><div className="input-unit"><input type="number" step="0.01" value={startUnit} onChange={(e) => setStartUnit(e.target.value)} placeholder="77015" disabled={continuationHasLatest} required /><em>kWh</em></div></label>
                 </div>
@@ -466,7 +504,7 @@ function App() {
               <div className="reading-group end-reading">
                 <div className="reading-group-title"><span className="reading-badge">B</span><div><strong>ค่ามิเตอร์ล่าสุด</strong><small>กรอกวันที่ เวลา และเลขมิเตอร์ที่อ่านได้ครั้งนี้</small></div></div>
                 <div className="reading-fields">
-                  <label className="field"><span>วันที่จบ</span><input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required /></label>
+                  <label className="field"><span>วันที่จบ</span><ThaiDatePicker value={endDate} onChange={setEndDate} label="เลือกวันที่จบ" /></label>
                   <label className="field"><span>เวลาจบ</span><input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} required /></label>
                   <label className="field meter-field"><span>หน่วยจบ</span><div className="input-unit"><input type="number" step="0.01" value={endUnit} onChange={(e) => setEndUnit(e.target.value)} placeholder="77047" required /><em>kWh</em></div></label>
                 </div>
