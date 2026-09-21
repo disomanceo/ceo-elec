@@ -213,6 +213,83 @@ type LineChartProps = {
   variant?: 'purple' | 'amber'
 }
 
+function CombinedLineChart({ entries }: { entries: ElectricityEntry[] }) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [width, setWidth] = useState(340)
+  const height = 220
+  const left = 28
+  const right = 18
+  const top = 28
+  const bottom = 38
+
+  useEffect(() => {
+    const element = containerRef.current
+    if (!element) return
+    const updateWidth = () => setWidth(Math.max(280, Math.floor(element.clientWidth)))
+    updateWidth()
+    const observer = new ResizeObserver(updateWidth)
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [])
+
+  const chartWidth = width - left - right
+  const chartHeight = height - top - bottom
+  const unitValues = entries.map((entry) => entry.endUnit - entry.startUnit)
+  const costValues = entries.map((entry) => (entry.endUnit - entry.startUnit) * entry.rate)
+  const maxUnit = Math.max(1, ...unitValues)
+  const maxCost = Math.max(1, ...costValues)
+  const labelStep = entries.length > 7 ? 2 : 1
+
+  const unitPoints = entries.map((entry, index) => {
+    const x = entries.length === 1 ? left + chartWidth / 2 : left + (index / (entries.length - 1)) * chartWidth
+    const value = unitValues[index]
+    const y = top + chartHeight - (value / maxUnit) * chartHeight
+    return { entry, index, x, y, value }
+  })
+  const costPoints = entries.map((entry, index) => {
+    const x = entries.length === 1 ? left + chartWidth / 2 : left + (index / (entries.length - 1)) * chartWidth
+    const value = costValues[index]
+    const y = top + chartHeight - (value / maxCost) * chartHeight
+    return { entry, index, x, y, value }
+  })
+
+  return (
+    <div className="combined-chart" ref={containerRef}>
+      <div className="combined-chart-legend">
+        <span><i className="legend-dot purple-dot" />หน่วย (kWh)</span>
+        <span><i className="legend-dot amber-dot" />ค่าใช้จ่าย (บาท)</span>
+      </div>
+      <svg viewBox={`0 0 ${width} ${height}`} width="100%" height={height} role="img" aria-label="กราฟหน่วยและค่าใช้จ่าย">
+        {[0, 1, 2, 3].map((grid) => {
+          const y = top + (grid / 3) * chartHeight
+          return <line key={grid} className="chart-grid-line" x1={left} y1={y} x2={width - right} y2={y} />
+        })}
+        {unitPoints.length > 1 && <polyline className="combined-unit-line" points={unitPoints.map((point) => `${point.x},${point.y}`).join(' ')} />}
+        {costPoints.length > 1 && <polyline className="combined-cost-line" points={costPoints.map((point) => `${point.x},${point.y}`).join(' ')} />}
+        {unitPoints.map((point) => {
+          const showLabel = point.index % labelStep === 0 || point.index === unitPoints.length - 1
+          return (
+            <g key={`unit-${point.entry.id}`}>
+              <circle className="combined-unit-point" cx={point.x} cy={point.y} r="4" />
+              {showLabel && <text className="combined-unit-value" x={point.x} y={Math.max(13, point.y - 9)} textAnchor="middle">{formatUnit(point.value)}</text>}
+            </g>
+          )
+        })}
+        {costPoints.map((point) => {
+          const showLabel = point.index % labelStep === 0 || point.index === costPoints.length - 1
+          return (
+            <g key={`cost-${point.entry.id}`}>
+              <circle className="combined-cost-point" cx={point.x} cy={point.y} r="4" />
+              {showLabel && <text className="combined-cost-value" x={point.x} y={Math.min(height - bottom - 4, point.y + 13)} textAnchor="middle">฿{formatMoney(point.value, 0)}</text>}
+              {showLabel && <text className="line-date" x={point.x} y={height - 10} textAnchor="middle">{formatChartDate(point.entry.endDate)}</text>}
+            </g>
+          )
+        })}
+      </svg>
+    </div>
+  )
+}
+
 function LineChart({ entries, valueOf, valueFormatter, variant = 'purple' }: LineChartProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState(640)
@@ -613,17 +690,20 @@ function App() {
         <section id="analytics" className="panel analytics-panel">
           <div className="panel-heading"><div className="heading-group"><div className="heading-icon chart-icon">⌁</div><div><h2>สถิติการใช้ไฟฟ้า</h2><p>แต่ละจุดบนกราฟแทนช่วงที่สิ้นสุดในวันนั้น ย้อนหลังสูงสุด 14 รายการ</p></div></div><div className="analytics-total"><span>ยอดสะสมทั้งหมด</span><strong>{formatUnit(totalUnits)} หน่วย · {formatMoney(totalCost)} บาท</strong></div></div>
           {chartEntries.length === 0 ? <div className="empty-state"><div className="empty-icon">⌁</div><strong>ยังไม่มีข้อมูลสถิติ</strong><span>เมื่อบันทึกช่วงการใช้ไฟแล้ว กราฟจะแสดงที่นี่</span></div> : (
-            <div className="charts-grid">
-              <div className="chart-card"><div className="chart-title"><span className="legend-dot purple-dot" /> หน่วยที่ใช้ต่อช่วง (kWh)</div><LineChart entries={chartEntries} valueOf={(entry) => entry.endUnit - entry.startUnit} valueFormatter={formatUnit} /></div>
-              <div className="chart-card cost-chart"><div className="chart-title"><span className="legend-dot amber-dot" /> ค่าใช้จ่ายต่อช่วง (บาท)</div><LineChart entries={chartEntries} valueOf={(entry) => (entry.endUnit - entry.startUnit) * entry.rate} valueFormatter={(value) => formatMoney(value, 0)} variant="amber" /></div>
-            </div>
+            <>
+              <div className="mobile-combined-chart"><CombinedLineChart entries={chartEntries} /></div>
+              <div className="charts-grid desktop-chart-grid">
+                <div className="chart-card"><div className="chart-title"><span className="legend-dot purple-dot" /> หน่วยที่ใช้ต่อช่วง (kWh)</div><LineChart entries={chartEntries} valueOf={(entry) => entry.endUnit - entry.startUnit} valueFormatter={formatUnit} /></div>
+                <div className="chart-card cost-chart"><div className="chart-title"><span className="legend-dot amber-dot" /> ค่าใช้จ่ายต่อช่วง (บาท)</div><LineChart entries={chartEntries} valueOf={(entry) => (entry.endUnit - entry.startUnit) * entry.rate} valueFormatter={(value) => formatMoney(value, 0)} variant="amber" /></div>
+              </div>
+            </>
           )}
         </section>
 
         <section id="history" className="panel history-panel">
           <div className="panel-heading history-heading"><div className="heading-group"><div className="heading-icon">☷</div><div><h2>ประวัติช่วงการใช้ไฟ</h2><p>พบ {filteredEntries.length} รายการ</p></div></div><button className="button export-button" onClick={exportCsv} disabled={filteredEntries.length === 0}>⇩ ส่งออก CSV</button></div>
           <div className="filter-bar"><div className="filter-title">กรองตามวันที่สิ้นสุด</div><label className="filter-field"><span>จากวันที่</span><input type="date" value={filterStart} onChange={(e) => setFilterStart(e.target.value)} /></label><label className="filter-field"><span>ถึงวันที่</span><input type="date" value={filterEnd} onChange={(e) => setFilterEnd(e.target.value)} /></label><button className="button secondary clear-filter" onClick={() => { setFilterStart(''); setFilterEnd('') }}>ล้างตัวกรอง</button></div>
-          <div className="table-wrap"><table className="interval-table"><thead><tr><th>เริ่มต้น</th><th>หน่วยเริ่ม</th><th>สิ้นสุด</th><th>หน่วยจบ</th><th>ระยะเวลา</th><th>ใช้ไป</th><th>ค่าไฟ</th><th>จัดการ</th></tr></thead><tbody>
+          <div className="table-wrap desktop-history-table"><table className="interval-table"><thead><tr><th>เริ่มต้น</th><th>หน่วยเริ่ม</th><th>สิ้นสุด</th><th>หน่วยจบ</th><th>ระยะเวลา</th><th>ใช้ไป</th><th>ค่าไฟ</th><th>จัดการ</th></tr></thead><tbody>
             {filteredEntries.length === 0 ? <tr><td colSpan={8} className="empty-cell">ยังไม่มีข้อมูลการบันทึก</td></tr> : filteredEntries.map((entry) => {
               const used = entry.endUnit - entry.startUnit
               const cost = used * entry.rate
@@ -640,6 +720,30 @@ function App() {
               </tr>
             })}
           </tbody></table></div>
+          <div className="mobile-history-list">
+            {filteredEntries.length === 0 ? <div className="mobile-history-empty">ยังไม่มีข้อมูลการบันทึก</div> : filteredEntries.map((entry) => {
+              const used = entry.endUnit - entry.startUnit
+              const cost = used * entry.rate
+              const duration = getDurationHours(entry)
+              return (
+                <article className="mobile-history-row" key={`mobile-${entry.id}`}>
+                  <div className="mobile-history-main">
+                    <strong>{formatDate(entry.startDate)} {entry.startTime || '–'} → {formatDate(entry.endDate)} {entry.endTime || '–'}</strong>
+                    <span>{formatMeterReading(entry.startUnit)} → {formatMeterReading(entry.endUnit)}</span>
+                  </div>
+                  <div className="mobile-history-stats">
+                    <span className="mobile-stat unit">{formatUnit(used)} kWh</span>
+                    <span className="mobile-stat time">{formatDuration(duration)}</span>
+                    <span className="mobile-stat cost">{formatMoney(cost)} บ.</span>
+                  </div>
+                  <div className="mobile-history-actions">
+                    <button className="icon-button" onClick={() => handleEdit(entry)}>✎</button>
+                    <button className="icon-button danger" onClick={() => handleDelete(entry.id)}>⌫</button>
+                  </div>
+                </article>
+              )
+            })}
+          </div>
         </section>
       </main>
 
