@@ -235,52 +235,36 @@ function CombinedLineChart({ entries }: { entries: ElectricityEntry[] }) {
   const chartWidth = width - left - right
   const chartHeight = height - top - bottom
   const unitValues = entries.map((entry) => entry.endUnit - entry.startUnit)
-  const costValues = entries.map((entry) => (entry.endUnit - entry.startUnit) * entry.rate)
   const maxUnit = Math.max(1, ...unitValues)
-  const maxCost = Math.max(1, ...costValues)
   const labelStep = entries.length > 7 ? 2 : 1
 
-  const unitPoints = entries.map((entry, index) => {
+  const points = entries.map((entry, index) => {
     const x = entries.length === 1 ? left + chartWidth / 2 : left + (index / (entries.length - 1)) * chartWidth
-    const value = unitValues[index]
-    const y = top + chartHeight - (value / maxUnit) * chartHeight
-    return { entry, index, x, y, value }
-  })
-  const costPoints = entries.map((entry, index) => {
-    const x = entries.length === 1 ? left + chartWidth / 2 : left + (index / (entries.length - 1)) * chartWidth
-    const value = costValues[index]
-    const y = top + chartHeight - (value / maxCost) * chartHeight
-    return { entry, index, x, y, value }
+    const unit = unitValues[index]
+    const cost = unit * entry.rate
+    const y = top + chartHeight - (unit / maxUnit) * chartHeight
+    return { entry, index, x, y, unit, cost }
   })
 
   return (
     <div className="combined-chart" ref={containerRef}>
       <div className="combined-chart-legend">
-        <span><i className="legend-dot purple-dot" />หน่วย (kWh)</span>
-        <span><i className="legend-dot amber-dot" />ค่าใช้จ่าย (บาท)</span>
+        <span><i className="legend-dot purple-dot" />เส้นแนวโน้ม: หน่วย (kWh)</span>
+        <span><i className="legend-dot amber-dot" />ตัวเลขส้ม: ค่าใช้จ่าย (บาท)</span>
       </div>
-      <svg viewBox={`0 0 ${width} ${height}`} width="100%" height={height} role="img" aria-label="กราฟหน่วยและค่าใช้จ่าย">
+      <svg viewBox={`0 0 ${width} ${height}`} width="100%" height={height} role="img" aria-label="กราฟแนวโน้มหน่วยไฟพร้อมค่าใช้จ่ายแต่ละจุด">
         {[0, 1, 2, 3].map((grid) => {
           const y = top + (grid / 3) * chartHeight
           return <line key={grid} className="chart-grid-line" x1={left} y1={y} x2={width - right} y2={y} />
         })}
-        {unitPoints.length > 1 && <polyline className="combined-unit-line" points={unitPoints.map((point) => `${point.x},${point.y}`).join(' ')} />}
-        {costPoints.length > 1 && <polyline className="combined-cost-line" points={costPoints.map((point) => `${point.x},${point.y}`).join(' ')} />}
-        {unitPoints.map((point) => {
-          const showLabel = point.index % labelStep === 0 || point.index === unitPoints.length - 1
+        {points.length > 1 && <polyline className="combined-unit-line" points={points.map((point) => `${point.x},${point.y}`).join(' ')} />}
+        {points.map((point) => {
+          const showLabel = point.index % labelStep === 0 || point.index === points.length - 1
           return (
-            <g key={`unit-${point.entry.id}`}>
+            <g key={point.entry.id}>
               <circle className="combined-unit-point" cx={point.x} cy={point.y} r="4" />
-              {showLabel && <text className="combined-unit-value" x={point.x} y={Math.max(13, point.y - 9)} textAnchor="middle">{formatUnit(point.value)}</text>}
-            </g>
-          )
-        })}
-        {costPoints.map((point) => {
-          const showLabel = point.index % labelStep === 0 || point.index === costPoints.length - 1
-          return (
-            <g key={`cost-${point.entry.id}`}>
-              <circle className="combined-cost-point" cx={point.x} cy={point.y} r="4" />
-              {showLabel && <text className="combined-cost-value" x={point.x} y={Math.min(height - bottom - 4, point.y + 13)} textAnchor="middle">฿{formatMoney(point.value, 0)}</text>}
+              {showLabel && <text className="combined-unit-value" x={point.x} y={Math.max(13, point.y - 11)} textAnchor="middle">{formatUnit(point.unit)} kWh</text>}
+              {showLabel && <text className="combined-cost-value" x={point.x} y={Math.min(height - bottom - 3, point.y + 14)} textAnchor="middle">฿{formatMoney(point.cost, 0)}</text>}
               {showLabel && <text className="line-date" x={point.x} y={height - 10} textAnchor="middle">{formatChartDate(point.entry.endDate)}</text>}
             </g>
           )

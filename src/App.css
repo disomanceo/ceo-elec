@@ -335,14 +335,11 @@ input:disabled { opacity: .72; cursor: not-allowed; }
 .mobile-combined-chart,
 .mobile-history-list { display: none; }
 .combined-chart { width: 100%; min-width: 0; }
-.combined-chart-legend { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; color: #5d6170; font-size: .72rem; font-weight: 800; }
+.combined-chart-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 7px 14px; margin-bottom: 8px; color: #5d6170; font-size: .72rem; font-weight: 800; }
 .combined-chart-legend span { display: inline-flex; align-items: center; gap: 6px; }
 .combined-chart-legend i { display: inline-block; }
-.combined-unit-line, .combined-cost-line { fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
-.combined-unit-line { stroke: #6d5cb1; }
-.combined-cost-line { stroke: #d89313; }
+.combined-unit-line { fill: none; stroke: #6d5cb1; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
 .combined-unit-point { fill: #fff; stroke: #6d5cb1; stroke-width: 2.5; }
-.combined-cost-point { fill: #fff; stroke: #d89313; stroke-width: 2.5; }
 .combined-unit-value { fill: #6555a6; font-size: 10px; font-weight: 900; }
 .combined-cost-value { fill: #b77905; font-size: 10px; font-weight: 900; }
 
