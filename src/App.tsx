@@ -659,8 +659,6 @@ function App() {
                 </div>
               </div>
 
-              <div className="interval-arrow">→</div>
-
               <div className="reading-group end-reading">
                 <div className="reading-group-title"><span className="reading-badge">B</span><div><strong>ค่ามิเตอร์ล่าสุด</strong><small>กรอกวันที่ เวลา และเลขมิเตอร์ที่อ่านได้ครั้งนี้</small></div></div>
                 <div className="reading-fields">

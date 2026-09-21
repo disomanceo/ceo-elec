@@ -281,7 +281,6 @@ input:disabled { opacity: .72; cursor: not-allowed; }
 .reading-badge { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 10px; background: #4b3f8f; color: #fff; font-size: .78rem; font-weight: 900; }
 .end-reading .reading-badge { background: #2a9daf; }
 .reading-fields { display: grid; grid-template-columns: 1fr 1fr 1.15fr; gap: 12px; }
-.interval-arrow { width: 36px; height: 36px; display: grid; place-items: center; justify-self: center; margin: -6px 0; border-radius: 50%; color: #fff; background: #4b3f8f; font-size: 1.1rem; font-weight: 900; box-shadow: 0 6px 14px rgba(75,63,143,.18); }
 .rate-field { max-width: 320px; }
 .interval-summary .interval-metric { position: relative; z-index: 1; padding: 19px 0 8px; }
 .interval-metric > span { display: block; color: #c8c2e5; font-size: .8rem; }
@@ -416,7 +415,7 @@ input:disabled { opacity: .72; cursor: not-allowed; }
   .reading-fields .thai-date-icon { display: none; }
   .reading-fields .thai-date-button strong { font-size: .62rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .reading-fields .thai-date-chevron { font-size: .8rem; }
-  .interval-arrow { width: 28px; height: 28px; margin: -4px 0; font-size: .86rem; }
+  .interval-form { gap: 7px; }
   .rate-field { max-width: none; }
   .rate-field > span { font-size: .66rem; }
   .rate-field input { min-height: 39px; }
