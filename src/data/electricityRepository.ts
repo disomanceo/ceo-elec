@@ -1,21 +1,41 @@
 export type ElectricityEntry = {
   id: string
-  date: string
-  recordTime: string
+  startDate: string
+  startTime: string
+  endDate: string
+  endTime: string
   startUnit: number
   endUnit: number
   rate: number
 }
 
-const CACHE_KEY = 'electricity-log.entries.v1'
+const CACHE_KEY = 'electricity-log.entries.v2'
+const LEGACY_CACHE_KEY = 'electricity-log.entries.v1'
 const API_URL = (import.meta.env.VITE_APPS_SCRIPT_URL as string | undefined)?.trim() ?? ''
+
+function normalizeEntry(raw: Partial<ElectricityEntry> & { date?: string; recordTime?: string }): ElectricityEntry {
+  const fallbackDate = raw.endDate || raw.startDate || raw.date || ''
+  const fallbackTime = raw.endTime || raw.startTime || raw.recordTime || ''
+  return {
+    id: String(raw.id || ''),
+    startDate: String(raw.startDate || fallbackDate),
+    startTime: String(raw.startTime || fallbackTime),
+    endDate: String(raw.endDate || fallbackDate),
+    endTime: String(raw.endTime || fallbackTime),
+    startUnit: Number(raw.startUnit) || 0,
+    endUnit: Number(raw.endUnit) || 0,
+    rate: Number(raw.rate) || 0,
+  }
+}
 
 function readCache(): ElectricityEntry[] {
   try {
-    const raw = localStorage.getItem(CACHE_KEY)
+    const raw = localStorage.getItem(CACHE_KEY) || localStorage.getItem(LEGACY_CACHE_KEY)
     if (!raw) return []
-    const parsed = JSON.parse(raw) as ElectricityEntry[]
-    return Array.isArray(parsed) ? parsed : []
+    const parsed = JSON.parse(raw) as Array<Partial<ElectricityEntry> & { date?: string; recordTime?: string }>
+    const normalized = Array.isArray(parsed) ? parsed.map(normalizeEntry) : []
+    localStorage.setItem(CACHE_KEY, JSON.stringify(normalized))
+    return normalized
   } catch {
     return []
   }
@@ -54,8 +74,8 @@ export const electricityRepository = {
   async list(): Promise<{ entries: ElectricityEntry[]; source: 'remote' | 'cache' }> {
     if (!API_URL) return { entries: readCache(), source: 'cache' }
     try {
-      const result = await request<{ ok: boolean; entries: ElectricityEntry[] }>(undefined, '?action=list')
-      const entries = Array.isArray(result.entries) ? result.entries : []
+      const result = await request<{ ok: boolean; entries: Array<Partial<ElectricityEntry> & { date?: string; recordTime?: string }> }>(undefined, '?action=list')
+      const entries = Array.isArray(result.entries) ? result.entries.map(normalizeEntry) : []
       writeCache(entries)
       return { entries, source: 'remote' }
     } catch {

@@ -235,3 +235,39 @@ tbody tr:last-child td { border-bottom: 0; }
   .history-heading { align-items: center; }
   .export-button { padding-inline: 10px; }
 }
+
+/* Interval reading UI */
+.interval-form { grid-template-columns: 1fr; }
+.reading-group { padding: 17px; border: 1px solid #e4e6ee; border-radius: 16px; background: #fafafd; }
+.start-reading { border-left: 4px solid #6d5cb1; }
+.end-reading { border-left: 4px solid #2a9daf; }
+.reading-group-title { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.reading-group-title > div { display: grid; gap: 1px; }
+.reading-group-title strong { font-size: .95rem; color: #3d4050; }
+.reading-group-title small { font-size: .72rem; color: #8c909e; }
+.reading-badge { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 10px; background: #4b3f8f; color: #fff; font-size: .78rem; font-weight: 900; }
+.end-reading .reading-badge { background: #2a9daf; }
+.reading-fields { display: grid; grid-template-columns: 1fr 1fr 1.15fr; gap: 12px; }
+.interval-arrow { width: 36px; height: 36px; display: grid; place-items: center; justify-self: center; margin: -6px 0; border-radius: 50%; color: #fff; background: #4b3f8f; font-size: 1.1rem; font-weight: 900; box-shadow: 0 6px 14px rgba(75,63,143,.18); }
+.rate-field { max-width: 320px; }
+.interval-summary .interval-metric { position: relative; z-index: 1; padding: 19px 0 8px; }
+.interval-metric > span { display: block; color: #c8c2e5; font-size: .8rem; }
+.interval-metric > strong { display: block; margin-top: 4px; font-size: 1.7rem; line-height: 1.18; color: #fff; }
+.interval-metric > strong small { font-size: .75rem; color: #d9d3ef; }
+.interval-metric > small { display: block; margin-top: 5px; color: #b7b1d6; font-size: .72rem; }
+.datetime-cell { display: grid; gap: 3px; }
+.datetime-cell strong { color: #3d4050; }
+.datetime-cell span { color: #2a7887; font-size: .72rem; font-weight: 800; }
+.meter-reading { font-variant-numeric: tabular-nums; font-weight: 800; color: #343747; }
+.duration-pill { display: inline-block; padding: 5px 8px; border-radius: 8px; color: #266277; background: #edf7fa; font-weight: 800; font-size: .72rem; }
+.hours-note { display: block; margin-top: 3px; color: #9296a3; font-size: .66rem; }
+.interval-table { min-width: 1080px; }
+@media (max-width: 760px) {
+  .reading-fields { grid-template-columns: 1fr 1fr; }
+  .meter-field { grid-column: 1 / -1; }
+  .rate-field { max-width: none; }
+}
+@media (max-width: 480px) {
+  .reading-fields { grid-template-columns: 1fr; }
+  .meter-field { grid-column: 1; }
+}
