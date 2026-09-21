@@ -53,6 +53,12 @@ function monthKey(date: string) {
   return date.slice(0, 7)
 }
 
+function findLatestEntry(entries: ElectricityEntry[]) {
+  return [...entries]
+    .filter((entry) => entry.endDate)
+    .sort((a, b) => `${b.endDate} ${b.endTime || ''}`.localeCompare(`${a.endDate} ${a.endTime || ''}`))[0]
+}
+
 function toDateTime(date: string, time: string) {
   if (!date || !time) return null
   const value = new Date(`${date}T${time}:00`)
@@ -154,6 +160,7 @@ function App() {
   const [endTime, setEndTime] = useState(nowTime)
   const [endUnit, setEndUnit] = useState('')
   const [rate, setRate] = useState('4.80')
+  const [continuationMode, setContinuationMode] = useState(true)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [filterStart, setFilterStart] = useState('')
   const [filterEnd, setFilterEnd] = useState('')
@@ -166,6 +173,26 @@ function App() {
       if (!mounted) return
       setEntries(result.entries)
       setStorageMode(result.source)
+
+      const latest = findLatestEntry(result.entries)
+      if (latest) {
+        const currentDate = getLocalDate()
+        const currentTime = getLocalTime()
+        setStartDate(latest.endDate || currentDate)
+        setStartTime(latest.endTime || '')
+        setStartUnit(String(latest.endUnit))
+        setRate(String(latest.rate || 4.8))
+
+        const latestAt = toDateTime(latest.endDate, latest.endTime)
+        const nowAt = toDateTime(currentDate, currentTime)
+        if (latestAt && nowAt && nowAt > latestAt) {
+          setEndDate(currentDate)
+          setEndTime(currentTime)
+        } else {
+          setEndDate(latest.endDate || currentDate)
+          setEndTime(latest.endTime || currentTime)
+        }
+      }
     })
     return () => { mounted = false }
   }, [])
@@ -178,6 +205,11 @@ function App() {
   const sortedEntries = useMemo(
     () => [...entries].sort((a, b) => `${b.endDate} ${b.endTime}`.localeCompare(`${a.endDate} ${a.endTime}`)),
     [entries],
+  )
+  const latestEntry = sortedEntries[0]
+  const continuationHasLatest = Boolean(continuationMode && !editingId && latestEntry)
+  const continuationReady = Boolean(
+    continuationHasLatest && latestEntry?.endDate && latestEntry?.endTime,
   )
 
   const filteredEntries = useMemo(() => sortedEntries.filter((entry) => {
@@ -197,16 +229,56 @@ function App() {
   const totalUnits = sumUnits(entries)
   const totalCost = sumCost(entries)
 
-  const resetForm = () => {
+  const applyContinuationStart = (baseEntry?: ElectricityEntry) => {
+    const base = baseEntry ?? latestEntry
     const currentDate = getLocalDate()
     const currentTime = getLocalTime()
+
+    if (base) {
+      setContinuationMode(true)
+      setStartDate(base.endDate || currentDate)
+      setStartTime(base.endTime || '')
+      setStartUnit(String(base.endUnit))
+      setRate(String(base.rate || 4.8))
+
+      const baseAt = toDateTime(base.endDate, base.endTime)
+      const nowAt = toDateTime(currentDate, currentTime)
+      if (baseAt && nowAt && nowAt > baseAt) {
+        setEndDate(currentDate)
+        setEndTime(currentTime)
+      } else {
+        setEndDate(base.endDate || currentDate)
+        setEndTime(base.endTime || currentTime)
+      }
+    } else {
+      setContinuationMode(false)
+      setStartDate(currentDate)
+      setStartTime(currentTime)
+      setStartUnit('')
+      setEndDate(currentDate)
+      setEndTime(currentTime)
+      setRate('4.80')
+    }
+
+    setEndUnit('')
+    setEditingId(null)
+    setError('')
+  }
+
+  const resetForm = () => {
+    applyContinuationStart()
+  }
+
+  const startManualMode = () => {
+    const currentDate = getLocalDate()
+    const currentTime = getLocalTime()
+    setContinuationMode(false)
     setStartDate(currentDate)
     setStartTime(currentTime)
     setStartUnit('')
     setEndDate(currentDate)
     setEndTime(currentTime)
     setEndUnit('')
-    setRate('4.80')
     setEditingId(null)
     setError('')
   }
@@ -239,6 +311,15 @@ function App() {
       setError('ราคาต่อหน่วยต้องไม่ติดลบ')
       return
     }
+    if (continuationReady && latestEntry) {
+      const isContinuous = startDate === latestEntry.endDate
+        && startTime === latestEntry.endTime
+        && start === latestEntry.endUnit
+      if (!isContinuous) {
+        setError('จุดเริ่มต้นไม่ตรงกับค่าล่าสุด กรุณากด “ใช้ค่าล่าสุดต่อ” หรือเลือกกำหนดจุดเริ่มเอง')
+        return
+      }
+    }
 
     const item: ElectricityEntry = {
       id: editingId ?? crypto.randomUUID(),
@@ -254,12 +335,13 @@ function App() {
     const next = editingId
       ? entries.map((entry) => entry.id === editingId ? item : entry)
       : [...entries, item]
+    const nextLatest = findLatestEntry(next)
 
     setEntries(next)
     try {
       const source = await electricityRepository.upsert(item)
       setStorageMode(source)
-      resetForm()
+      applyContinuationStart(nextLatest)
     } catch {
       setStorageMode('cache')
       setError('บันทึกสำรองในเครื่องแล้ว แต่ยังส่งขึ้น Google Sheet ไม่สำเร็จ')
@@ -267,6 +349,7 @@ function App() {
   }
 
   const handleEdit = (entry: ElectricityEntry) => {
+    setContinuationMode(false)
     setEditingId(entry.id)
     setStartDate(entry.startDate || today)
     setStartTime(entry.startTime || getLocalTime())
@@ -281,7 +364,9 @@ function App() {
 
   const handleDelete = async (id: string) => {
     if (!window.confirm('ต้องการลบรายการนี้ใช่หรือไม่?')) return
-    setEntries(entries.filter((entry) => entry.id !== id))
+    const nextEntries = entries.filter((entry) => entry.id !== id)
+    const removedLatest = latestEntry?.id === id
+    setEntries(nextEntries)
     try {
       const source = await electricityRepository.remove(id)
       setStorageMode(source)
@@ -289,7 +374,12 @@ function App() {
       setStorageMode('cache')
       window.alert('ลบข้อมูลในเครื่องแล้ว แต่ยังซิงก์การลบไป Google Sheet ไม่สำเร็จ')
     }
-    if (editingId === id) resetForm()
+
+    if (editingId === id || (removedLatest && continuationMode)) {
+      const nextLatest = findLatestEntry(nextEntries)
+      if (nextLatest) applyContinuationStart(nextLatest)
+      else startManualMode()
+    }
   }
 
   const exportCsv = () => {
@@ -335,30 +425,46 @@ function App() {
         </section>
 
         <section className="summary-grid">
-          <article className="summary-card purple"><div className="summary-icon">⚡</div><div className="summary-copy"><span>ใช้ไฟเดือนนี้</span><strong>{formatUnit(monthUnits)}</strong><small>หน่วย (kWh)</small></div></article>
-          <article className="summary-card blue"><div className="summary-icon">◷</div><div className="summary-copy"><span>ช่วงเวลาที่วัดเดือนนี้</span><strong>{formatUnit(monthHours)}</strong><small>ชั่วโมง</small></div></article>
-          <article className="summary-card amber"><div className="summary-icon">฿</div><div className="summary-copy"><span>ค่าไฟเดือนนี้</span><strong>{formatMoney(monthCost)}</strong><small>บาท</small></div></article>
-          <article className="summary-card cyan"><div className="summary-icon">☷</div><div className="summary-copy"><span>จำนวนช่วงที่บันทึก</span><strong>{entries.length}</strong><small>รายการ</small></div></article>
+          <article className="summary-card purple"><div className="summary-icon">◉</div><div className="summary-copy"><span>เลขมิเตอร์ล่าสุด</span><strong>{latestEntry ? formatMeterReading(latestEntry.endUnit) : '–'}</strong><small>{latestEntry ? `${formatDate(latestEntry.endDate)} ${latestEntry.endTime || ''}` : 'ยังไม่มีข้อมูล'}</small></div></article>
+          <article className="summary-card blue"><div className="summary-icon">⚡</div><div className="summary-copy"><span>ใช้ไฟเดือนนี้</span><strong>{formatUnit(monthUnits)}</strong><small>หน่วย (kWh)</small></div></article>
+          <article className="summary-card amber"><div className="summary-icon">◷</div><div className="summary-copy"><span>ช่วงเวลาที่วัดเดือนนี้</span><strong>{formatUnit(monthHours)}</strong><small>ชั่วโมง</small></div></article>
+          <article className="summary-card cyan"><div className="summary-icon">฿</div><div className="summary-copy"><span>ค่าไฟเดือนนี้</span><strong>{formatMoney(monthCost)}</strong><small>บาท</small></div></article>
         </section>
 
         <section id="record" className="record-layout">
           <article className="panel form-panel">
-            <div className="panel-heading"><div className="heading-group"><div className="heading-icon">✎</div><div><h2>{editingId ? 'แก้ไขช่วงการใช้ไฟ' : 'บันทึกช่วงการใช้ไฟ'}</h2><p>กรอกจุดเริ่มต้นและจุดสิ้นสุด เพื่อคำนวณหน่วยและระยะเวลาที่ใช้จริง</p></div></div>{editingId && <button className="button secondary" onClick={resetForm}>ยกเลิก</button>}</div>
+            <div className="panel-heading"><div className="heading-group"><div className="heading-icon">✎</div><div><h2>{editingId ? 'แก้ไขช่วงการใช้ไฟ' : 'บันทึกต่อเนื่อง'}</h2><p>{editingId ? 'แก้ไขจุดเริ่มต้นและจุดสิ้นสุดของช่วงนี้' : 'ระบบใช้ค่าจบล่าสุดเป็นจุดเริ่มต้นรอบใหม่อัตโนมัติ'}</p></div></div><div className="heading-actions">{editingId ? <button className="button secondary" onClick={resetForm}>ยกเลิก</button> : latestEntry ? (continuationMode ? <button className="button secondary" type="button" onClick={startManualMode}>กำหนดจุดเริ่มเอง</button> : <button className="button secondary" type="button" onClick={() => applyContinuationStart()}>ใช้ค่าล่าสุดต่อ</button>) : null}</div></div>
 
             <form onSubmit={handleSubmit} className="entry-form interval-form">
-              <div className="reading-group start-reading">
-                <div className="reading-group-title"><span className="reading-badge">A</span><div><strong>จุดเริ่มต้น</strong><small>วันที่ เวลา และเลขมิเตอร์เริ่ม</small></div></div>
+              {!editingId && latestEntry && continuationMode && (
+                <div className={`continuation-banner ${continuationReady ? '' : 'needs-time'}`}>
+                  <div className="continuation-icon">↻</div>
+                  <div>
+                    <strong>ต่อจากค่าล่าสุดอัตโนมัติ</strong>
+                    <span>{formatDate(latestEntry.endDate)} {latestEntry.endTime || 'ยังไม่มีเวลา'} · มิเตอร์ {formatMeterReading(latestEntry.endUnit)}</span>
+                  </div>
+                  <small>{continuationReady ? 'กรอกเฉพาะค่ามิเตอร์ล่าสุดด้านล่าง' : 'ข้อมูลเดิมไม่มีเวลา กรุณาระบุเวลาเริ่มก่อนบันทึกครั้งนี้'}</small>
+                </div>
+              )}
+              {!editingId && !latestEntry && (
+                <div className="continuation-banner first-reading">
+                  <div className="continuation-icon">1</div>
+                  <div><strong>บันทึกครั้งแรก</strong><span>กำหนดจุดเริ่มต้นและจุดสิ้นสุดครั้งแรก หลังจากนี้ระบบจะต่อให้อัตโนมัติ</span></div>
+                </div>
+              )}
+              <div className={`reading-group start-reading ${continuationReady ? 'auto-start' : ''}`}>
+                <div className="reading-group-title"><span className="reading-badge">A</span><div><strong>จุดเริ่มต้น {continuationHasLatest ? '· ต่อจากครั้งล่าสุด' : ''}</strong><small>{continuationHasLatest ? 'ระบบนำค่าจบล่าสุดมาใช้ให้อัตโนมัติ' : 'วันที่ เวลา และเลขมิเตอร์เริ่ม'}</small></div></div>
                 <div className="reading-fields">
-                  <label className="field"><span>วันที่เริ่ม</span><input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required /></label>
-                  <label className="field"><span>เวลาเริ่ม</span><input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} required /></label>
-                  <label className="field meter-field"><span>หน่วยเริ่มต้น</span><div className="input-unit"><input type="number" step="0.01" value={startUnit} onChange={(e) => setStartUnit(e.target.value)} placeholder="77015" required /><em>kWh</em></div></label>
+                  <label className="field"><span>วันที่เริ่ม</span><input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} disabled={continuationHasLatest} required /></label>
+                  <label className="field"><span>เวลาเริ่ม</span><input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} disabled={continuationReady} required /></label>
+                  <label className="field meter-field"><span>หน่วยเริ่มต้น</span><div className="input-unit"><input type="number" step="0.01" value={startUnit} onChange={(e) => setStartUnit(e.target.value)} placeholder="77015" disabled={continuationHasLatest} required /><em>kWh</em></div></label>
                 </div>
               </div>
 
               <div className="interval-arrow">→</div>
 
               <div className="reading-group end-reading">
-                <div className="reading-group-title"><span className="reading-badge">B</span><div><strong>จุดสิ้นสุด</strong><small>วันที่ เวลา และเลขมิเตอร์จบ</small></div></div>
+                <div className="reading-group-title"><span className="reading-badge">B</span><div><strong>ค่ามิเตอร์ล่าสุด</strong><small>กรอกวันที่ เวลา และเลขมิเตอร์ที่อ่านได้ครั้งนี้</small></div></div>
                 <div className="reading-fields">
                   <label className="field"><span>วันที่จบ</span><input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required /></label>
                   <label className="field"><span>เวลาจบ</span><input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} required /></label>
@@ -368,7 +474,7 @@ function App() {
 
               <label className="field full-field rate-field"><span>อัตราค่าไฟต่อหน่วย</span><div className="input-unit"><input type="number" step="0.01" min="0" value={rate} onChange={(e) => setRate(e.target.value)} required /><em>บาท</em></div></label>
               {error && <div className="error-message">{error}</div>}
-              <div className="form-actions"><button className="button primary submit-button" type="submit">✓ {editingId ? 'บันทึกการแก้ไข' : 'บันทึกข้อมูล'}</button></div>
+              <div className="form-actions"><button className="button primary submit-button" type="submit">✓ {editingId ? 'บันทึกการแก้ไข' : continuationHasLatest ? 'บันทึกค่าล่าสุดและนับต่อ' : 'บันทึกข้อมูลครั้งแรก'}</button></div>
             </form>
           </article>
 

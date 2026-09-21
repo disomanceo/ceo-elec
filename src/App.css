@@ -238,6 +238,21 @@ tbody tr:last-child td { border-bottom: 0; }
 
 /* Interval reading UI */
 .interval-form { grid-template-columns: 1fr; }
+.heading-actions { display: flex; align-items: center; gap: 8px; }
+.continuation-banner { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 11px; padding: 13px 14px; border: 1px solid #cfe8db; border-radius: 14px; background: #f1fbf6; color: #2c6248; }
+.continuation-banner.needs-time { border-color: #f1ddb0; background: #fff9ec; color: #8b681f; }
+.continuation-banner.first-reading { border-color: #d9d6eb; background: #f7f5fc; color: #51477f; }
+.continuation-icon { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px; background: rgba(43,182,115,.13); font-weight: 900; font-size: 1rem; }
+.needs-time .continuation-icon { background: rgba(231,165,43,.15); }
+.first-reading .continuation-icon { background: rgba(75,63,143,.12); }
+.continuation-banner > div:nth-child(2) { display: grid; gap: 2px; min-width: 0; }
+.continuation-banner strong { font-size: .84rem; }
+.continuation-banner span { font-size: .75rem; font-weight: 700; }
+.continuation-banner small { color: inherit; opacity: .78; font-size: .7rem; text-align: right; }
+.auto-start { background: #f6fbf8; border-color: #cee8da; }
+.auto-start input:disabled { opacity: 1; color: #3f6353; background: #edf7f1; border-color: #d3e8dc; cursor: not-allowed; }
+input:disabled { opacity: .72; cursor: not-allowed; }
+
 .reading-group { padding: 17px; border: 1px solid #e4e6ee; border-radius: 16px; background: #fafafd; }
 .start-reading { border-left: 4px solid #6d5cb1; }
 .end-reading { border-left: 4px solid #2a9daf; }
@@ -266,6 +281,10 @@ tbody tr:last-child td { border-bottom: 0; }
   .reading-fields { grid-template-columns: 1fr 1fr; }
   .meter-field { grid-column: 1 / -1; }
   .rate-field { max-width: none; }
+  .continuation-banner { grid-template-columns: auto 1fr; }
+  .continuation-banner small { grid-column: 1 / -1; text-align: left; padding-left: 45px; }
+  .heading-actions { width: 100%; }
+  .heading-actions .button { width: 100%; }
 }
 @media (max-width: 480px) {
   .reading-fields { grid-template-columns: 1fr; }
