@@ -245,6 +245,7 @@ function App() {
     [entries],
   )
   const latestEntry = sortedEntries[0]
+  const earliestEntry = sortedEntries[sortedEntries.length - 1]
   const continuationHasLatest = Boolean(continuationMode && !editingId && latestEntry)
   const continuationReady = Boolean(
     continuationHasLatest && latestEntry?.endDate && latestEntry?.endTime,
@@ -463,7 +464,7 @@ function App() {
         </section>
 
         <section className="summary-grid">
-          <article className="summary-card purple"><div className="summary-icon">◉</div><div className="summary-copy"><span>เลขมิเตอร์ล่าสุด</span><strong>{latestEntry ? formatMeterReading(latestEntry.endUnit) : '–'}</strong><small>{latestEntry ? `${formatDate(latestEntry.endDate)} ${latestEntry.endTime || ''}` : 'ยังไม่มีข้อมูล'}</small></div></article>
+          <article className="summary-card purple"><div className="summary-icon">◉</div><div className="summary-copy"><span>มิเตอร์เริ่มต้น - มิเตอร์ล่าสุด</span><strong>{earliestEntry && latestEntry ? `${formatMeterReading(earliestEntry.startUnit)} - ${formatMeterReading(latestEntry.endUnit)}` : '–'}</strong><small>{earliestEntry && latestEntry ? `${formatDate(earliestEntry.startDate)} → ${formatDate(latestEntry.endDate)}` : 'ยังไม่มีข้อมูล'}</small></div></article>
           <article className="summary-card blue"><div className="summary-icon">⚡</div><div className="summary-copy"><span>ใช้ไฟเดือนนี้</span><strong>{formatUnit(monthUnits)}</strong><small>หน่วย (kWh)</small></div></article>
           <article className="summary-card amber"><div className="summary-icon">◷</div><div className="summary-copy"><span>ช่วงเวลาที่วัดเดือนนี้</span><strong>{formatUnit(monthHours)}</strong><small>ชั่วโมง</small></div></article>
           <article className="summary-card cyan"><div className="summary-icon">฿</div><div className="summary-copy"><span>ค่าไฟเดือนนี้</span><strong>{formatMoney(monthCost)}</strong><small>บาท</small></div></article>
