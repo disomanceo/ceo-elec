@@ -56,33 +56,115 @@ type ThaiDatePickerProps = {
   label: string
 }
 
-function ThaiDatePicker({ value, onChange, disabled = false, label }: ThaiDatePickerProps) {
-  const inputRef = useRef<HTMLInputElement>(null)
+const THAI_MONTHS = [
+  'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+  'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
+]
+const THAI_WEEKDAYS = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส']
 
-  const openPicker = () => {
+function parseDateParts(value: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
+  if (!match) return null
+  return { year: Number(match[1]), month: Number(match[2]) - 1, day: Number(match[3]) }
+}
+
+function toDateValue(year: number, month: number, day: number) {
+  return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+}
+
+function ThaiDatePicker({ value, onChange, disabled = false, label }: ThaiDatePickerProps) {
+  const selected = parseDateParts(value)
+  const todayParts = parseDateParts(getLocalDate())!
+  const [open, setOpen] = useState(false)
+  const [viewYear, setViewYear] = useState(selected?.year ?? todayParts.year)
+  const [viewMonth, setViewMonth] = useState(selected?.month ?? todayParts.month)
+  const toggleCalendar = () => {
     if (disabled) return
-    const input = inputRef.current
-    if (!input) return
-    if (typeof input.showPicker === 'function') input.showPicker()
-    else input.click()
+    if (!open && selected) {
+      setViewYear(selected.year)
+      setViewMonth(selected.month)
+    }
+    setOpen((current) => !current)
+  }
+
+  const shiftMonth = (amount: number) => {
+    const next = new Date(viewYear, viewMonth + amount, 1)
+    setViewYear(next.getFullYear())
+    setViewMonth(next.getMonth())
+  }
+
+  const firstWeekday = new Date(viewYear, viewMonth, 1).getDay()
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate()
+  const calendarCells: Array<number | null> = [
+    ...Array.from({ length: firstWeekday }, () => null),
+    ...Array.from({ length: daysInMonth }, (_, index) => index + 1),
+  ]
+  while (calendarCells.length % 7 !== 0) calendarCells.push(null)
+
+  const chooseDay = (day: number) => {
+    onChange(toDateValue(viewYear, viewMonth, day))
+    setOpen(false)
+  }
+
+  const chooseToday = () => {
+    setViewYear(todayParts.year)
+    setViewMonth(todayParts.month)
+    onChange(toDateValue(todayParts.year, todayParts.month, todayParts.day))
+    setOpen(false)
   }
 
   return (
     <div className={`thai-date-picker ${disabled ? 'disabled' : ''}`}>
-      <button type="button" className="thai-date-button" onClick={openPicker} disabled={disabled} aria-label={label}>
+      <button
+        type="button"
+        className="thai-date-button"
+        onClick={toggleCalendar}
+        disabled={disabled}
+        aria-label={label}
+        aria-expanded={open}
+      >
         <span className="thai-date-icon">▣</span>
         <strong>{value ? formatDate(value) : 'เลือกวันที่'}</strong>
         <span className="thai-date-chevron">⌄</span>
       </button>
-      <input
-        ref={inputRef}
-        className="native-date-input"
-        type="date"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        disabled={disabled}
-        tabIndex={-1}
-      />
+
+      {open && !disabled && (
+        <div className="thai-calendar-popover" role="dialog" aria-label={`ปฏิทิน ${label}`}>
+          <div className="thai-calendar-header">
+            <button type="button" className="calendar-nav" onClick={() => shiftMonth(-1)} aria-label="เดือนก่อนหน้า">‹</button>
+            <div className="calendar-month-title">
+              <strong>{THAI_MONTHS[viewMonth]}</strong>
+              <span>พ.ศ. {viewYear + 543}</span>
+            </div>
+            <button type="button" className="calendar-nav" onClick={() => shiftMonth(1)} aria-label="เดือนถัดไป">›</button>
+          </div>
+
+          <div className="thai-calendar-weekdays">
+            {THAI_WEEKDAYS.map((weekday) => <span key={weekday}>{weekday}</span>)}
+          </div>
+          <div className="thai-calendar-grid">
+            {calendarCells.map((day, index) => {
+              if (!day) return <span key={`blank-${index}`} className="calendar-blank" />
+              const isSelected = selected?.year === viewYear && selected.month === viewMonth && selected.day === day
+              const isToday = todayParts.year === viewYear && todayParts.month === viewMonth && todayParts.day === day
+              return (
+                <button
+                  type="button"
+                  key={day}
+                  className={`calendar-day ${isSelected ? 'selected' : ''} ${isToday ? 'today' : ''}`}
+                  onClick={() => chooseDay(day)}
+                >
+                  {day}
+                </button>
+              )
+            })}
+          </div>
+          <div className="thai-calendar-footer">
+            <button type="button" onClick={chooseToday}>วันนี้</button>
+            <button type="button" onClick={() => setOpen(false)}>ปิด</button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -308,3 +308,26 @@ input:disabled { opacity: .72; cursor: not-allowed; }
   .reading-fields { grid-template-columns: 1fr; }
   .meter-field { grid-column: 1; }
 }
+
+/* Thai calendar popover */
+.thai-calendar-popover { position: absolute; z-index: 90; top: calc(100% + 8px); left: 0; width: min(320px, calc(100vw - 34px)); padding: 14px; border: 1px solid #dedfea; border-radius: 16px; background: #fff; box-shadow: 0 18px 42px rgba(40,35,80,.18); }
+.thai-calendar-header { display: grid; grid-template-columns: 36px 1fr 36px; align-items: center; gap: 8px; margin-bottom: 12px; }
+.calendar-nav { width: 36px; height: 36px; border: 0; border-radius: 10px; color: #4b3f8f; background: #f0eef9; font-size: 1.35rem; font-weight: 900; }
+.calendar-nav:hover { background: #e7e3f4; }
+.calendar-month-title { display: grid; justify-items: center; gap: 1px; }
+.calendar-month-title strong { color: #37334f; font-size: .95rem; }
+.calendar-month-title span { color: #777b8b; font-size: .74rem; font-weight: 700; }
+.thai-calendar-weekdays, .thai-calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.thai-calendar-weekdays { margin-bottom: 5px; }
+.thai-calendar-weekdays span { display: grid; place-items: center; height: 28px; color: #8c909e; font-size: .68rem; font-weight: 900; }
+.calendar-day, .calendar-blank { aspect-ratio: 1; min-width: 0; }
+.calendar-day { display: grid; place-items: center; border: 0; border-radius: 9px; color: #3e4252; background: transparent; font-size: .78rem; font-weight: 800; }
+.calendar-day:hover { color: #4b3f8f; background: #f3f1fa; }
+.calendar-day.today { box-shadow: inset 0 0 0 1px #b9b0dc; color: #4b3f8f; }
+.calendar-day.selected { color: #fff; background: #4b3f8f; box-shadow: none; }
+.thai-calendar-footer { display: flex; justify-content: space-between; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #eeeeF4; }
+.thai-calendar-footer button { border: 0; border-radius: 9px; padding: 7px 11px; color: #55498c; background: #f0eef9; font-size: .72rem; font-weight: 800; }
+.thai-calendar-footer button:last-child { color: #676b78; background: #f3f4f7; }
+@media (max-width: 480px) {
+  .thai-calendar-popover { position: fixed; z-index: 100; left: 12px; right: 12px; top: 50%; width: auto; transform: translateY(-50%); }
+}
