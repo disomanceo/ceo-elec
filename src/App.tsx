@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { electricityRepository } from './data/electricityRepository'
 import type { ElectricityEntry } from './data/electricityRepository'
@@ -31,6 +31,10 @@ function formatUnit(value: number) {
   }).format(value)
 }
 
+function formatMeterReading(value: number) {
+  return Number.isFinite(value) ? String(value) : '-'
+}
+
 function formatDate(date: string) {
   if (!date) return '-'
   return new Intl.DateTimeFormat('th-TH', {
@@ -60,33 +64,48 @@ type LineChartProps = {
 }
 
 function LineChart({ entries, valueOf, valueFormatter, variant = 'purple' }: LineChartProps) {
-  const width = Math.max(640, entries.length * 76)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [width, setWidth] = useState(640)
   const height = 250
   const left = 34
   const right = 24
   const top = 30
   const bottom = 46
+
+  useEffect(() => {
+    const element = containerRef.current
+    if (!element) return
+
+    const updateWidth = () => setWidth(Math.max(280, Math.floor(element.clientWidth)))
+    updateWidth()
+
+    const observer = new ResizeObserver(updateWidth)
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [])
+
   const chartWidth = width - left - right
   const chartHeight = height - top - bottom
   const values = entries.map(valueOf)
   const maxValue = Math.max(1, ...values)
+  const labelStep = width < 430 || entries.length > 10 ? 2 : 1
 
   const points = entries.map((entry, index) => {
     const x = entries.length === 1
       ? left + chartWidth / 2
       : left + (index / (entries.length - 1)) * chartWidth
     const y = top + chartHeight - (valueOf(entry) / maxValue) * chartHeight
-    return { entry, x, y, value: valueOf(entry) }
+    return { entry, x, y, value: valueOf(entry), index }
   })
 
   const polyline = points.map((point) => `${point.x},${point.y}`).join(' ')
 
   return (
-    <div className="line-chart-scroll">
+    <div className="line-chart-scroll" ref={containerRef}>
       <svg
         className={`line-chart-svg ${variant === 'amber' ? 'amber-line' : ''}`}
         viewBox={`0 0 ${width} ${height}`}
-        width={width}
+        width="100%"
         height={height}
         role="img"
         aria-label="กราฟเส้นรายวัน"
@@ -96,18 +115,25 @@ function LineChart({ entries, valueOf, valueFormatter, variant = 'purple' }: Lin
           return <line key={grid} className="chart-grid-line" x1={left} y1={y} x2={width - right} y2={y} />
         })}
         {points.length > 1 && <polyline className="line-series" points={polyline} />}
-        {points.map((point) => (
-          <g key={point.entry.id}>
-            <circle className="line-point-halo" cx={point.x} cy={point.y} r="8" />
-            <circle className="line-point" cx={point.x} cy={point.y} r="4.5" />
-            <text className="line-value" x={point.x} y={Math.max(16, point.y - 13)} textAnchor="middle">
-              {valueFormatter(point.value)}
-            </text>
-            <text className="line-date" x={point.x} y={height - 14} textAnchor="middle">
-              {formatChartDate(point.entry.date)}
-            </text>
-          </g>
-        ))}
+        {points.map((point) => {
+          const showLabel = point.index % labelStep === 0 || point.index === points.length - 1
+          return (
+            <g key={point.entry.id}>
+              <circle className="line-point-halo" cx={point.x} cy={point.y} r="8" />
+              <circle className="line-point" cx={point.x} cy={point.y} r="4.5" />
+              {showLabel && (
+                <text className="line-value" x={point.x} y={Math.max(16, point.y - 13)} textAnchor="middle">
+                  {valueFormatter(point.value)}
+                </text>
+              )}
+              {showLabel && (
+                <text className="line-date" x={point.x} y={height - 14} textAnchor="middle">
+                  {formatChartDate(point.entry.date)}
+                </text>
+              )}
+            </g>
+          )
+        })}
       </svg>
     </div>
   )
@@ -513,8 +539,8 @@ function App() {
                     <tr key={entry.id}>
                       <td className="date-cell"><strong>{formatDate(entry.date)}</strong></td>
                       <td><span className="time-pill">{entry.recordTime || '–'}</span></td>
-                      <td>{formatUnit(entry.startUnit)}</td>
-                      <td>{formatUnit(entry.endUnit)}</td>
+                      <td>{formatMeterReading(entry.startUnit)}</td>
+                      <td>{formatMeterReading(entry.endUnit)}</td>
                       <td><span className="unit-pill">{formatUnit(used)} kWh</span></td>
                       <td>{formatNumber(entry.rate)} บาท</td>
                       <td className="money">{formatNumber(cost)} บาท</td>
