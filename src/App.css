@@ -69,6 +69,10 @@ a { color: inherit; text-decoration: none; }
 .summary-copy span { display: block; margin-bottom: 3px; color: #7d8190; font-size: .82rem; font-weight: 700; }
 .summary-copy strong { display: block; font-size: clamp(1.55rem, 2.4vw, 2.05rem); line-height: 1.12; color: #2b2d3c; font-variant-numeric: tabular-nums; }
 .summary-copy small { display: block; margin-top: 3px; color: #9396a3; font-size: .73rem; }
+.meter-range-card .summary-copy { min-width: 0; width: 100%; }
+.meter-range-card .summary-copy > span { line-height: 1.25; }
+.meter-range-value { max-width: 100%; font-size: clamp(1rem, 1.35vw, 1.28rem) !important; line-height: 1.15 !important; letter-spacing: -.025em; white-space: nowrap; }
+.meter-range-date { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--shadow); }
 .record-layout { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(300px, .75fr); gap: 18px; margin-bottom: 18px; }
@@ -215,6 +219,10 @@ tbody tr:last-child td { border-bottom: 0; }
   .summary-icon { flex-basis: 40px; width: 40px; height: 40px; border-radius: 12px; font-size: 1.1rem; }
   .summary-copy strong { font-size: 1.35rem; }
   .summary-copy span { font-size: .74rem; }
+  .meter-range-card { grid-column: 1 / -1; }
+  .meter-range-card .summary-copy { width: auto; }
+  .meter-range-value { font-size: 1.08rem !important; }
+  .meter-range-date { font-size: .68rem !important; }
   .form-panel, .analytics-panel, .history-panel { padding: 17px; }
   .panel-heading { align-items: flex-start; }
   .entry-form { grid-template-columns: 1fr; }
